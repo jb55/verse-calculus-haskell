@@ -103,7 +103,7 @@ eval = \case
   Val v       -> return v
   Fail        -> mzero
   Seq e1 e2   -> eval e1 >> eval e2
-  Exists x e -> eval e
+  Exists x e  -> eval e
   Eq v e2     -> eval e2 >>= \v2 -> unify v v2 >> return v
   Choice e1 e2 -> eval e1 <|> eval e2
   One e       -> fmap head (collect e)
@@ -133,16 +133,6 @@ eval = \case
 extractScalar :: Value -> Scalar
 extractScalar (S s) = s
 extractScalar _     = error "Expected scalar value"
-
--- Example demo from the paper
-demo :: Expr
-demo =
-  Exists "x" $
-  Exists "y" $
-  Exists "z" $
-    Seq (Eq (S (VVar "x")) (Val . H . HTuple $ [VVar "y", VInt 3]))
-      (Seq (Eq (S (VVar "x")) (Val . H . HTuple $ [VInt 2,  VVar "z"]))
-           (Val . S $ VVar "y"))
 
 -- ────────────────────────────────────────────────────────────────
 -- Pretty printing helpers
@@ -181,5 +171,108 @@ runPretty e =
   [ prettyResult (h, resolve h v)
   | (h, v) <- runE (eval e) M.empty ]
 
+-- ────────────────────────────────────────────────────────────────
+-- Pretty-printing Expr without evaluating it
+-- ────────────────────────────────────────────────────────────────
+prettyExpr :: Expr -> String
+prettyExpr = go 0
+  where
+    -- Higher number == binds tighter
+    go :: Int -> Expr -> String
+    go _ (Val v)          = prettyValue v
+    go _ Fail             = "fail"
+
+    go p (Exists x e)     = paren (p > 0) $
+                              "∃" ++ x ++ ". " ++ go 0 e
+
+    go p (Seq e1 e2)      = bin 1 ";"  e1 e2   -- precedence 1
+    go p (Choice e1 e2)   = bin 1 "|"   e1 e2
+    go p (Eq v e)         = paren (p > 1) $
+                              prettyValue v ++ " = " ++ go 2 e
+
+    go p (App f a)        = paren (p > 2) $
+                              go 2 f ++ " " ++ go 3 a
+    go p (VApp v1 v2)     = paren (p > 2) $
+                              prettyValue v1 ++ " ⋅ " ++ prettyValue v2
+
+    go p (One e)          = "one " ++ paren (needsParen e) (go 3 e)
+    go p (All e)          = "all " ++ paren (needsParen e) (go 3 e)
+
+    -- helpers ----------------------------------------------------
+    bin prec op e1 e2 = paren (p > prec) $
+                          go prec e1 ++ " " ++ op ++ " " ++ go prec e2
+      where p = prec
+
+    needsParen Val{}   = False
+    needsParen Fail    = False
+    needsParen _       = True
+
+    paren True  s = "(" ++ s ++ ")"
+    paren False s = s
+
+printExpr :: Expr -> IO ()
+printExpr = putStrLn . prettyExpr
+
 printEval :: Expr -> IO ()
 printEval = mapM_ putStrLn . runPretty
+
+-- ────────────────────────────────────────────────────────────────
+-- Smart constructors & tiny DSL
+-- (drop these just after the data-type definitions)
+-- ────────────────────────────────────────────────────────────────
+
+-- Scalars --------------------------------------------------------
+varS  :: Name -> Scalar
+varS  = VVar
+
+intS  :: Int  -> Scalar
+intS  = VInt
+
+primS :: Prim -> Scalar
+primS = VPrim
+
+-- Values ---------------------------------------------------------
+varV  :: Name -> Value        -- logical variable as a Value
+varV  = S . varS
+
+intV  :: Int  -> Value
+intV  = S . intS
+
+primV :: Prim -> Value
+primV = S . primS
+
+tupleV :: [Scalar] -> Value   -- ⟨ … ⟩ as a Value
+tupleV = H . HTuple
+
+lamV :: Name -> Expr -> Value -- λx.e as a Value
+lamV  = (H .) . HLam          -- handy but unused in the demo
+
+-- Expressions ----------------------------------------------------
+valE :: Value -> Expr         -- just lift to Expr
+valE = Val
+
+existsE :: Name -> Expr -> Expr
+existsE = Exists
+
+seqE :: Expr -> Expr -> Expr  -- left-to-right sequencing
+seqE = Seq
+
+(.=.) :: Value -> Value -> Expr  -- inline equality test
+v .=. w = Eq v (valE w)
+
+infix  1 .=.
+infixr 0 `seqE`
+
+-- ────────────────────────────────────────────────────────────────
+-- Demo
+-- ────────────────────────────────────────────────────────────────
+demo :: Expr
+demo =
+  existsE "x" $
+  existsE "y" $
+  existsE "z" $
+        ( varV "x" .=. tupleV [ varS "y", intS 3 ] )
+     `seqE`
+        ( varV "x" .=. tupleV [ intS 2  , varS "z" ] )
+     `seqE`
+        valE (varV "y")

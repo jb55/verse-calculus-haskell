@@ -6,20 +6,11 @@ This demo was vibe-coded with o3 via the [Verse calculus paper][verse-paper]
 ## Demo
 
 ```haskell
-demo :: Expr
-demo =
-  existsE "x" $
-  existsE "y" $
-  existsE "z" $
-        ( varV "x" .=. tupleV [ varS "y", intS 3 ] )
-     `seqE`
-        ( varV "x" .=. tupleV [ intS 2  , varS "z" ] )
-     `seqE`
-        valE (varV "y")
-```
+ghci> :l VerseCalculus.hs Parser.hs
 
-```bash
-ghci> :l VerseCalculus.hs
+ghci> mapM_ printEval $ Parser.parseExpr "x. y. z. x = (y, z); x = (z, 2); z"
+{ x = ⟨y, z⟩, y = z, z = 2 }
+↳ 2
 
 ghci> printExpr demo
 ∃x. ∃y. ∃z. x = ⟨y, 3⟩ ; x = ⟨2, z⟩ ; y

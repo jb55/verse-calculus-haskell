@@ -7,11 +7,6 @@ import           Data.List        (intercalate)
 import           Control.Applicative
 import           Control.Monad (MonadPlus(..), guard)
 
--- MonadPlus instance for Eval
-instance MonadPlus Eval where
-  mzero = empty
-  mplus = (<|>)
-
 -- | Names for both term and logical variables
 type Name = String
 
@@ -56,6 +51,11 @@ type HeapEnv = M.Map Name Value
 -- Evaluation Monad
 newtype Eval a = E { runE :: HeapEnv -> [(HeapEnv, a)] }
   deriving Functor
+
+-- MonadPlus instance for Eval
+instance MonadPlus Eval where
+  mzero = empty
+  mplus = (<|>)
 
 instance Applicative Eval where
   pure x = E $ \h -> [(h, x)]

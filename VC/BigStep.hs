@@ -55,10 +55,20 @@ unify (S (VInt k1))  (S (VInt k2))  | k1 == k2  = return ()
 unify (H (HTuple xs)) (H (HTuple ys)) | length xs == length ys = mapM_ (uncurry unify) (zip (map S xs) (map S ys))
 unify _ _ = mzero
 
-bind :: Name -> Value -> Eval ()
-bind x v = E $ \h -> case M.lookup x h of
-  Nothing -> [(M.insert x v h, ())]
-  Just v' -> runE (unify v' v) h
+--bind :: Name -> Value -> Eval ()
+--bind x v = E $ \h -> case M.lookup x h of
+--  Nothing -> [(M.insert x v h, ())]
+--  Just v' -> runE (unify v' v) h
+
+-- | Insert a new binding @x ↦ v@ unless it is the pointless
+--   self-binding @x ↦ VVar x@.  Skipping it keeps the heap in
+--   canonical form and restores agreement with the small-step
+--   semantics.
+bind x v
+  | v == S (VVar x) = return ()                 -- ❶ ignore x = x
+  | otherwise       = E $ \h -> case M.lookup x h of
+      Nothing -> [(M.insert x v h, ())]        -- ❷ fresh binding
+      Just v' -> runE (unify v' v) h           -- ❸ already bound
 
 ---------------------------------------------------------------------
 --  Evaluation rules (identical to original VC module)

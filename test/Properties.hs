@@ -92,6 +92,16 @@ prop_big_vs_small e = collect (sizeExpr e) $ normBig e === normSmall e
   where
     sizeExpr = length . show
 
+normal_idempotent :: Expr -> Property
+normal_idempotent e = collect (sizeExpr e) $ (SS.normalForm . SS.normalForm) e == SS.normalForm e
+  where
+    sizeExpr = length . show
+
+normal_is_ever_different :: Expr -> Property
+normal_is_ever_different e = collect (sizeExpr e) $ e == SS.normalForm e
+  where
+    sizeExpr = length . show
+
 -- | prettyExpr and parseExpr are a round‑trip for the subset we generate.
 --   We normalise with small‑step first to rule out alpha‑varying Exists order.
 prop_pretty_roundtrip :: Expr -> Property
@@ -110,6 +120,8 @@ prop_pretty_roundtrip e =
 main :: IO ()
 main = do
   --quickCheck prop_big_vs_small
-  --quickCheck (withMaxSuccess 20000 prop_big_vs_small)
-  quickCheck (withMaxSuccess 20000 prop_pretty_roundtrip)
+  quickCheck (withMaxSuccess 20000 prop_big_vs_small)
+  --quickCheck (withMaxSuccess 20000 prop_pretty_roundtrip)
+  --quickCheck (withMaxSuccess 20000 prop_big_vs_small_diff)
+  --quickCheck normal_is_ever_different
   --quickCheck prop_pretty_roundtrip

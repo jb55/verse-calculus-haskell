@@ -2,6 +2,7 @@
 import VC.Syntax (prettyExpr)
 import VC.Parser (parseExpr)
 import VC.SmallStep (normalForm)
+import VC.BigStep (prettyEval)
 import VC.MLIREmit (emitExpr)
 
 import qualified Data.Text    as T
@@ -14,5 +15,7 @@ main = do
     Left err   -> putStrLn (show err)
     Right expr -> do
       let norm = normalForm expr   -- Small-step for now
+      putStrLn (prettyExpr expr)
       putStrLn (prettyExpr norm)
-      T.putStrLn (emitExpr norm)     -- MLIR dump
+      prettyEval norm
+      --T.putStrLn (emitExpr norm)     -- MLIR dump

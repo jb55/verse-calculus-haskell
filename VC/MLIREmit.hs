@@ -15,6 +15,7 @@
 module VC.MLIREmit
   ( emitExpr
   , freshDemo
+  , demo
   ) where
 
 import           VC.Syntax                             -- the AST definitions

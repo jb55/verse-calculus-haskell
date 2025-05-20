@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Parser (exprP, parseExpr) where
+module VC.Parser (exprP, parseExpr) where
 
-import VC                                   -- your AST
+import VC.Syntax  -- your AST
 import           Data.Void                  (Void)
 import qualified Text.Megaparsec            as P
 import           Text.Megaparsec            (Parsec, (<|>), (<?>))

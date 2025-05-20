@@ -6,7 +6,7 @@
 -- ──────────────────────────────────────────────────────────────
 
 module VC.BigStep
-  ( Eval, runEval, eval, unify, bind ) where
+  ( Eval, runEval, eval, unify, bind, prettyEval ) where
 
 import           VC.Syntax
 import qualified Data.Map.Strict as M
@@ -94,3 +94,5 @@ extractScalar :: Value -> Scalar
 extractScalar (S s) = s
 extractScalar _     = error "Expected scalar value"
 
+prettyEval :: Expr -> IO ()
+prettyEval = mapM_ putStrLn . runPretty . runE . eval

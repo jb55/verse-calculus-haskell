@@ -12,7 +12,7 @@ $ gchi
 ghci> printExpr demo
 ∃x. ∃y. ∃z. x = ⟨y, 3⟩ ; x = ⟨2, z⟩ ; y
 
-ghci> mapM_ putStrLn $ runPretty $ runE $ eval demo
+ghci> mapM_ prettyEval $ parseExpr "x. y. z. x = (y, z); x = (z, 2); z"
 { x = ⟨y, 3⟩, y = 2, z = 3 }
 ↳ 2
 ```

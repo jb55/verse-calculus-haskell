@@ -34,26 +34,31 @@ parens  = P.between (symbol "(") (symbol ")")
 ---------------------------------------------------------------------
 
 identifier :: Parser String
-identifier = lexeme ((:) <$> C.letterChar <*> P.many C.alphaNumChar) <?> "identifier"
+identifier = (lexeme . P.try) $ do
+    s <- (:) <$> C.letterChar <*> P.many C.alphaNumChar
+    if s `elem` ["fail","one","all","add","gt"]
+       then fail "reserved word"
+       else pure s
 
 integer :: Parser Int
-integer = lexeme L.decimal <?> "integer"
+integer = lexeme (L.signed space L.decimal) <?> "integer"
 
 scalarP :: Parser Scalar
 scalarP =
-      VVar  <$> identifier
+      VPrim <$> (Add <$ C.string "add" <|> Gt <$ C.string "gt")
+  <|> VVar  <$> identifier
   <|> VInt  <$> integer
-  <|> VPrim <$> (Add <$ C.string "add" <|> Gt <$ C.string "gt")
   <?> "scalar"
 
 ---------------------------------------------------------------------
 -- Values  (scalars, tuples)
 ---------------------------------------------------------------------
-
 tupleP :: Parser Heap
-tupleP =
-  HTuple <$> P.between (symbol "(") (symbol ")")
-                      (scalarP `P.sepBy1` symbol ",")
+tupleP = HTuple <$> P.between open close elems
+  where
+    open  =  void (symbol "(")  <|> void (symbol "⟨")
+    close =  void (symbol ")")  <|> void (symbol "⟩")
+    elems = scalarP `P.sepBy1` symbol ","
 
 valueP :: Parser Value
 valueP =

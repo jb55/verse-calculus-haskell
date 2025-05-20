@@ -46,12 +46,19 @@ applyExpr s = \case
 
 rewriteOnce :: Expr -> Maybe Expr
 rewriteOnce = \case
+    -- (a) Propagate failure
+  Seq Fail _e2
+    -> Just Fail
+  
   Seq (Val _) e2 -> Just e2
   Seq e1 e2 -> rewriteOnce e1 >>= \e1' -> Just (Seq e1' e2)
 
-  Eq (S (VVar x)) (Val v) -> Just (Val (S (VVar x)))
-  Eq v (Val v') | v == v' -> Just (Val v)
-  Eq _ _                  -> Just Fail
+  --Eq (S (VVar x)) (Val v) -> Just (Val (S (VVar x)))
+  -- Equality: try to make progress on the RHS first
+  Eq v rhs -> case rhs of
+    Val v' | v == v' -> Just (Val v)        -- identical scalars, done
+    Fail             -> Just Fail           -- RHS already failed
+    _                -> rewriteOnce rhs >>= \rhs' -> Just (Eq v rhs') -- otherwise, step inside RHS
 
   App (Val (H (HLam x body))) (Val arg) ->
     Just (Exists x (Seq (Eq (S (VVar x)) (Val arg)) body))

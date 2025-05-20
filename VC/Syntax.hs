@@ -115,8 +115,8 @@ prettyScalar :: Scalar -> String
 prettyScalar = \case
   VVar n    -> n
   VInt k    -> show k
-  VPrim Add -> "add"
-  VPrim Gt  -> "gt"
+  VPrim Add -> "add "
+  VPrim Gt  -> "gt "
 
 prettyHeap :: Heap -> String
 prettyHeap = \case

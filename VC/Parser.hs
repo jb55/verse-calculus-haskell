@@ -18,6 +18,7 @@ type Parser = Parsec Void String
 
 space :: Parser ()
 space = L.space C.space1 lineCmnt blockCmnt
+--space = L.space C.space lineCmnt blockCmnt   -- ‘space’ = 0 … n blanks
   where
     lineCmnt  = L.skipLineComment  "--"
     blockCmnt = L.skipBlockComment "/*" "*/"
@@ -28,6 +29,14 @@ symbol  :: String -> Parser String
 symbol  = L.symbol space
 parens  :: Parser a -> Parser a
 parens  = P.between (symbol "(") (symbol ")")
+
+---------------------------------------------------------------------
+--  NEW: recognise the ‘∃’ glyph that prettyExpr emits
+---------------------------------------------------------------------
+
+existsSym :: Parser ()
+existsSym = void (symbol "∃")           -- U+2203
+         <|> void (symbol "exists")     -- handy ASCII fallback
 
 ---------------------------------------------------------------------
 -- Lexical layer — identifiers, integers, primitives
@@ -77,11 +86,17 @@ valueP =
 --
 ---------------------------------------------------------------------
 
-exprP :: Parser Expr
 exprP = do
-  qs   <- P.many (P.try (identifier <* symbol "."))  -- allow back-tracking
+  qs   <- P.many quantifier
   body <- choiceP
   pure (foldr Exists body qs)
+  where
+    quantifier :: Parser Name
+    quantifier = P.try $ do
+      _ <- P.optional existsSym      -- accept both “∃x.” and plain “x.”
+      x <- identifier
+      _ <- symbol "."
+      pure x
 
 choiceP :: Parser Expr
 choiceP = do
@@ -102,13 +117,21 @@ eqP = P.try equality <|> simpleP
       e <- simpleP
       pure (Eq v e)
 
-simpleP :: Parser Expr
-simpleP =
-      Val <$> valueP
-  <|> Fail <$  symbol "fail"
+-- | Smallest “atom” that can stand as a term.
+atomP  :: Parser Expr
+atomP =
+      Fail <$  symbol "fail"
   <|> One  <$> (symbol "one" *> exprP)
   <|> All  <$> (symbol "all" *> exprP)
+  <|> Val  <$> valueP
   <|> parens exprP
+  <?> "atom"
+
+-- | Left-associative, whitespace-separated application.
+simpleP :: Parser Expr
+simpleP = do
+  ts <- P.some atomP
+  pure (foldl1 App ts)
   <?> "expression"
 
 ---------------------------------------------------------------------

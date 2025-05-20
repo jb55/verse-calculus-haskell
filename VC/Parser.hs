@@ -54,7 +54,7 @@ integer = lexeme (L.signed space L.decimal) <?> "integer"
 
 scalarP :: Parser Scalar
 scalarP =
-      VPrim <$> (Add <$ C.string "add" <|> Gt <$ C.string "gt")
+      VPrim <$> (Add <$ symbol "add" <|> Gt <$ symbol "gt")
   <|> VVar  <$> identifier
   <|> VInt  <$> integer
   <?> "scalar"

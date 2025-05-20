@@ -115,8 +115,8 @@ prettyScalar :: Scalar -> String
 prettyScalar = \case
   VVar n    -> n
   VInt k    -> show k
-  VPrim Add -> "add "
-  VPrim Gt  -> "gt "
+  VPrim Add -> "add"
+  VPrim Gt  -> "gt"
 
 prettyHeap :: Heap -> String
 prettyHeap = \case
@@ -153,29 +153,45 @@ resolve _ v            = v
 ---------------------------------------------------------------------
 --  Pretty‑printing Expr without evaluating it (for debugging)
 ---------------------------------------------------------------------
-
 prettyExpr :: Expr -> String
 prettyExpr = go 0
   where
     go :: Int -> Expr -> String
-    go _ (Val v)          = prettyValue v
-    go _ Fail             = "fail"
-    go p (Exists x e)     = paren (p > 0) $ "∃" ++ x ++ ". " ++ go 0 e
-    go p (Seq e1 e2)      = bin 1 ";"  e1 e2   -- precedence 1
-    go p (Choice e1 e2)   = bin 1 "|"  e1 e2
-    go p (Eq v e)         = paren (p > 1) $ prettyValue v ++ " = " ++ go 2 e
-    go p (App f a)        = paren (p > 2) $ go 2 f ++ " " ++ go 3 a
-    go p (VApp v1 v2)     = paren (p > 2) $ prettyValue v1 ++ " ⋅ " ++ prettyValue v2
-    go p (One e)          = "one " ++ paren (needsParen e) (go 3 e)
-    go p (All e)          = "all " ++ paren (needsParen e) (go 3 e)
+    go _ (Val v)        = prettyValue v
+    go _ Fail           = "fail"
 
-    bin prec op e1 e2 = paren (p > prec) $ go prec e1 ++ " " ++ op ++ " " ++ go prec e2
-      where p = prec
+    -- ∃x. e  (binds tightest of the big constructs)
+    go p (Exists x e)   = paren (p > 0) $ "∃" <> x <> ". " <> go 0 e
 
-    needsParen Val{}   = False
-    needsParen Fail    = False
-    needsParen _       = True
+    -- p 0  – Choice  (lowest-binding)
+    go p (Choice l r)   = bin p 0 "|"  l r
 
-    paren True  s = "(" ++ s ++ ")"
+    -- p 1  – Sequence
+    go p (Seq   l r)    = bin p 1 ";"  l r
+
+    -- p 2  – Equality
+    go p (Eq v e)       = paren (p > 2) $
+                          prettyValue v <> " = " <> go 3 e
+
+    -- p 3  – Application
+    go p (App f a)      = paren (p > 3) $
+                          go 3 f <> " " <> go 4 a
+    go p (VApp v1 v2)   = paren (p > 3) $
+                          prettyValue v1 <> " ⋅ " <> prettyValue v2
+
+    -- p 4  – One/All wrap an expression region
+    go _ (One e)        = "one " <> paren (needsParen e) (go 4 e)
+    go _ (All e)        = "all " <> paren (needsParen e) (go 4 e)
+
+    ----------------------------------------------------------------
+    -- helpers
+    bin p prec op l r   =
+      paren (p > prec) $ go prec l <> " " <> op <> " " <> go prec r
+
+    needsParen Val{}    = False
+    needsParen Fail     = False
+    needsParen _        = True
+
+    paren True  s = "(" <> s <> ")"
     paren False s = s
 

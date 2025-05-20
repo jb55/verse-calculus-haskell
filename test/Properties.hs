@@ -110,5 +110,6 @@ prop_pretty_roundtrip e =
 main :: IO ()
 main = do
   --quickCheck prop_big_vs_small
-  quickCheck (withMaxSuccess 20000 prop_big_vs_small)
+  --quickCheck (withMaxSuccess 20000 prop_big_vs_small)
+  quickCheck (withMaxSuccess 20000 prop_pretty_roundtrip)
   --quickCheck prop_pretty_roundtrip

@@ -1,0 +1,2 @@
+:l VC/BigStep.hs VC/MLIREmit.hs VC/Parser.hs VC/SmallStep.hs VC/Syntax.hs
+:m + VC.BigStep VC.MLIREmit VC.Parser VC.SmallStep VC.Syntax

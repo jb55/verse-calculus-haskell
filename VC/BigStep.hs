@@ -83,7 +83,7 @@ eval = \case
   VApp (S (VPrim Gt)) (H (HTuple [VInt k1, VInt k2]))
     | k1 > k2   -> return (S (VInt k1))
     | otherwise -> mzero
-  _ -> error "stuck term"
+  _ -> mzero
   where
     collect e = E $ \h ->
       [ (h2, v:vs) | (h1, v) <- runE (eval e) h, (h2, vs) <- runE (collect e) h1 ]
